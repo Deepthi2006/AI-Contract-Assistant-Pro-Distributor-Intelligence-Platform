@@ -5,7 +5,7 @@ numpy==1.26.4
 PyMuPDF==1.23.8
 python-dotenv==1.0.1
 sentence-transformers==2.5.1
-langchain-community=30.2.0
+langchain-community==0.2.0
 # Torch for embeddings
 torch==2.2.2
 
