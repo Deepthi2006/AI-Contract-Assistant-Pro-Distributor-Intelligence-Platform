@@ -15,7 +15,7 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -79,7 +79,9 @@ class VectorDB:
         if not os.path.exists(folder_path): os.makedirs(folder_path)
         np.save(os.path.join(folder_path, "vectors.npy"), self.vectors)
         with open(os.path.join(folder_path, "metadata.txt"), "w", encoding="utf-8") as f:
-            for id_, text in zip(self.ids, self.texts): f.write(f"{id_}\t{text.replace('\n', ' ')}\n")
+            for id_, text in zip(self.ids, self.texts):
+                clean_text = text.replace("\n", " ")
+                f.write(f"{id_}\t{clean_text}\n")
         with open(os.path.join(folder_path, "hashes.txt"), "w", encoding="utf-8") as f:
             for doc_id, hash_val in self.doc_hashes.items(): f.write(f"{doc_id}\t{hash_val}\n")
 
@@ -101,7 +103,17 @@ class VectorDB:
 def load_models():
     """Load and cache the embedding and chat models, using the enhanced prompt."""
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
+    # Initialize ChatGroq - API key should be in GROQ_API_KEY environment variable
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if not groq_api_key:
+        st.error("⚠️ GROQ_API_KEY environment variable is not set. Please add it to your .env file and restart Streamlit.")
+        st.stop()
+    llm = ChatGroq(
+        api_key=groq_api_key,
+        model="openai/gpt-oss-20b",       
+         temperature=0
+    )
+
     
     # ENHANCED PROMPT: Now includes directives for Alerts and Flags
     SUMMARY_SYSTEM_PROMPT = (
@@ -254,9 +266,14 @@ def main():
     load_css() # Load the professional styling
 
     # --- URL Parameter Check (Handles separate summary page) ---
-    params = st.query_params
-    if "page" in params and params["page"] == "summary":
-        doc_id_encoded = params.get("doc_id", [None])[0]
+    try:
+        params = st.query_params
+    except AttributeError:
+        # Fallback for older Streamlit versions
+        params = st.experimental_query_params if hasattr(st, 'experimental_query_params') else {}
+    
+    if "page" in params and params.get("page") == "summary":
+        doc_id_encoded = params.get("doc_id", None)
         if doc_id_encoded:
             doc_id = urllib.parse.unquote(doc_id_encoded)
             st.set_page_config(page_title=f"Summary: {doc_id}", layout="wide")

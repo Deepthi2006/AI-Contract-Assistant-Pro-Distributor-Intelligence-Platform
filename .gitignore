@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.vscode/
+.idea/
+
+multi_document_db/
+summary/
+
+source_documents/*
+!source_documents/.gitkeep
