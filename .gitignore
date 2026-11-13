@@ -10,3 +10,4 @@ summary/
 
 source_documents/*
 !source_documents/.gitkeep
+alerts_data.json
